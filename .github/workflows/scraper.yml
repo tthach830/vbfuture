@@ -55,10 +55,10 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Scrape next 60 days into SQLite
+      - name: Scrape next 90 days into SQLite
         if: steps.biweekly.outputs.should_run == 'true'
         run: |
-          python auto_scraper.py --days 60 --skip-json
+          python auto_scraper.py --days 90 --skip-json
 
       - name: Commit and push SQLite update
         if: steps.biweekly.outputs.should_run == 'true'
@@ -66,7 +66,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add -f volleyball.db
-          git diff --cached --quiet || (git commit -m "Automated update: refresh next 60 days" && git push)
+          git diff --cached --quiet || (git commit -m "Automated update: refresh next 90 days" && git push)
 
       - name: Upload Debug Artifacts on Failure
         if: failure()
