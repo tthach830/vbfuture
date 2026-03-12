@@ -434,6 +434,17 @@
             </div>
         </header>
 
+        <section class="glass-panel" style="height: auto; min-height: 0;">
+            <h2 class="section-title" style="margin-bottom: 0.5rem;">Court Map</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Availability window: <span id="current-hour-text">10AM-5PM</span></p>
+            <div id="map-wrapper" style="width: 100%; overflow: hidden; border-radius: 12px; background: #111827;">
+                <div id="map-scale-container" style="width: 1200px; height: 800px; transform-origin: top left; position: relative;">
+                    <img src="map.png" alt="Court map" style="width: 1200px; height: 800px; display: block;">
+                    <div id="map-dots-container" style="position: absolute; inset: 0;"></div>
+                </div>
+            </div>
+        </section>
+
         <main class="glass-panel">
             <h2 class="section-title"><span id="selected-date-label">Today</span></h2>
             <p style="text-align: center; font-size: 0.9rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 0.8rem;">last update: <span id="last-updated-text">...</span></p>
@@ -448,17 +459,6 @@
                 </table>
             </div>
         </main>
-
-        <section class="glass-panel" style="height: auto; min-height: 0;">
-            <h2 class="section-title" style="margin-bottom: 0.5rem;">Court Map</h2>
-            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Availability window: <span id="current-hour-text">10AM-5PM</span></p>
-            <div id="map-wrapper" style="width: 100%; overflow: hidden; border-radius: 12px; background: #111827;">
-                <div id="map-scale-container" style="width: 1200px; height: 800px; transform-origin: top left; position: relative;">
-                    <img src="map.png" alt="Court map" style="width: 1200px; height: 800px; display: block;">
-                    <div id="map-dots-container" style="position: absolute; inset: 0;"></div>
-                </div>
-            </div>
-        </section>
 
         <footer>
             &copy; 2026 Volleyball Court Scraper &bull; Auto-updated daily
