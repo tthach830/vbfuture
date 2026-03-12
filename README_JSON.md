@@ -8,7 +8,7 @@ A simple web application for tracking court availability using JSON files and SQ
 Step 1: Scraper collects data
    python auto_scraper.py
    ↓
-Scrapes WebTrac → Stores in SQLite → Exports to JSON (MMDDYYYY.json)
+Scrapes WebTrac → Stores in SQLite → Exports to JSON (json/MMDDYYYY.json)
    ↓
 Step 2: Open in browser
    Open index.html
@@ -20,7 +20,7 @@ Browser loads index.html → Checks for today's JSON file → Displays data in t
 
 - **auto_scraper.py** - Scrapes WebTrac, stores in SQLite, exports to JSON
 - **volleyball.db** - SQLite database (optional backup storage)
-- **MMDDYYYY.json** - JSON files containing court data for each date
+- **json/MMDDYYYY.json** - JSON files containing court data for each date
 - **index.html** - Web interface that reads from JSON files
 
 ## Quick Start
@@ -42,7 +42,7 @@ python auto_scraper.py
 This will:
 1. Scrape court availability from WebTrac
 2. Store data in `volleyball.db` (SQLite)
-3. Export to `MMDDYYYY.json` (where MMDDYYYY is today's date, e.g., `03122026.json`)
+3. Export to `json/MMDDYYYY.json` (where MMDDYYYY is today's date, e.g., `json/03122026.json`)
 
 ### 3. View the Data
 Open `index.html` in your web browser
@@ -58,13 +58,13 @@ The page will automatically:
 ```bash
 python auto_scraper.py
 ```
-Creates/updates: `03122026.json` (for March 12, 2026)
+Creates/updates: `json/03122026.json` (for March 12, 2026)
 
 ### Scrape for a Specific Date (MMDDYYYY)
 ```bash
 python auto_scraper.py 03152026
 ```
-Creates: `03152026.json`
+Creates: `json/03152026.json`
 
 ### Scrape for a Specific Date (YYYY-MM-DD)
 ```bash
@@ -92,7 +92,7 @@ Each JSON file contains:
 
 1. Run: `python auto_scraper.py` to create the JSON file
 2. Open: `index.html` in your web browser
-3. The page shows today's court availability in a table
+3. The page shows today's court availability in a table and synced map
 
 The table includes:
 - Court names
@@ -107,9 +107,10 @@ project/
 ├── auto_scraper.py         # Main scraper script
 ├── index.html              # Web interface
 ├── volleyball.db           # SQLite database (auto-created)
-├── 03122026.json          # Today's data (auto-created)
-├── 03132026.json          # Yesterday's data (auto-created)
-├── 03142026.json          # etc...
+├── json/
+│   ├── 03122026.json      # Today's data (auto-created)
+│   ├── 03132026.json      # Other dates (auto-created)
+│   └── ...
 ├── requirements.txt        # Dependencies
 ├── map.png                # Court map image
 ├── court_coords.json      # Court coordinates
@@ -123,7 +124,7 @@ project/
 - The script will create the JSON file for today
 
 ### JSON file not loading
-- Check that `03122026.json` exists in the same directory as `index.html`
+- Check that `json/03122026.json` exists in the `json/` directory
 - Verify the JSON file is valid: Open it in a text editor
 - Check browser console (F12) for errors
 
