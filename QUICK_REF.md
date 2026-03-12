@@ -5,7 +5,7 @@
 
 ```
 Scraper → JSON Files → Browser
-auto_scraper.py → MMDDYYYY.json → index.html
+auto_scraper.py → json/MMDDYYYY.json → index.html
 ```
 
 ---
@@ -27,13 +27,13 @@ This installs:
 ```bash
 python auto_scraper.py
 ```
-Creates: `03122026.json` (MMDDYYYY format)
+Creates: `json/03122026.json` (MMDDYYYY format)
 
 ### 2. Scrape Data for Specific Date
 ```bash
 python auto_scraper.py 03152026
 ```
-Creates: `03152026.json`
+Creates: `json/03152026.json`
 
 ### 3. View Data in Browser
 Open: `index.html` (double-click or drag to browser)
@@ -49,7 +49,7 @@ The page automatically loads today's data from the JSON file.
 | `auto_scraper.py` | Scraper script |
 | `index.html` | Web interface |
 | `volleyball.db` | SQLite backup (optional) |
-| `03122026.json` | Today's data (auto-created) |
+| `json/03122026.json` | Today's data (auto-created) |
 | `requirements.txt` | Python dependencies |
 
 ---
@@ -91,7 +91,7 @@ Open index.html in browser
     ↓
 JavaScript constructs date (03122026)
     ↓
-Fetches 03122026.json
+Fetches json/03122026.json
     ↓
 If found: Display table + map
 If not found: Show "Run scraper" message
@@ -122,7 +122,7 @@ Example: `03122026.json`
 | Problem | Solution |
 |---------|----------|
 | "No data available" message | Run `python auto_scraper.py` first |
-| JSON file not found | Check that JSON file exists in project directory |
+| JSON file not found | Check that JSON file exists in `json/` directory |
 | Scraper fails | Verify: `pip install -r requirements.txt` |
 | Old data showing | Delete old JSON files or run new scrape |
 | Permission denied | Use `python` not `py` on Windows |
@@ -133,7 +133,7 @@ Example: `03122026.json`
 
 - **Scraper**: Runs from command line
 - **HTML**: Opens directly in browser (no server needed)
-- **JSON**: One file per date (MMDDYYYY.json)
+- **JSON**: One file per date in `json/` (MMDDYYYY.json)
 - **Size**: Each JSON file ~10-30 KB
 - **Database**: SQLite file (optional backup)
 
@@ -144,14 +144,14 @@ Example: `03122026.json`
 ```bash
 # Day 1: Scrape Monday
 python auto_scraper.py
-# Creates: 03102026.json
+# Creates: json/03102026.json
 
 # Open in browser
 # Shows Monday's data
 
 # Day 2: Scrape Tuesday
 python auto_scraper.py 03112026
-# Creates: 03112026.json
+# Creates: json/03112026.json
 
 # Refresh browser or open index.html again
 # Now shows Tuesday's data
