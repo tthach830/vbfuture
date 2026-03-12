@@ -155,7 +155,7 @@
 
         @media (max-width: 768px) {
             h1 {
-                font-size: 1.8rem;
+                font-size: 1.5rem;
             }
 
             .container {
@@ -652,6 +652,16 @@
                 });
             }
 
+            function formatDateForShortDisplay(dateValue) {
+                const [year, month, day] = dateValue.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+
             function formatDateForInput(dateObj) {
                 return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
             }
@@ -893,7 +903,7 @@
                 const hourTextEl = document.getElementById('current-hour-text');
                 if (hourTextEl) {
                     const legendDate = selectedDateValue || getTodayDateValue();
-                    hourTextEl.innerText = `${formatDateForDisplay(legendDate)} · 10AM-5PM`;
+                    hourTextEl.innerText = `${formatDateForShortDisplay(legendDate)} · 10AM-5PM`;
                 }
 
                 const availabilityMap = {};
