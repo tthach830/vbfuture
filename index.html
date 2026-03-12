@@ -428,7 +428,6 @@
             <p style="margin-top: 1rem;">
             </p>
             <div class="date-picker-container" style="margin-top: 1.5rem;">
-                <label for="future-date">Choose Date:</label>
                 <button type="button" class="date-nav-btn" aria-label="Previous day" onclick="shiftDate(-1)">←</button>
                 <input type="date" id="future-date" onchange="handleFutureDateSelect(this.value)">
                 <button type="button" class="date-nav-btn" aria-label="Next day" onclick="shiftDate(1)">→</button>
@@ -436,9 +435,8 @@
         </header>
 
         <main class="glass-panel">
-            <h2 class="section-title"><span id="selected-date-label">Today</span> <span
-                    style="font-size: 0.9rem; font-weight: 400; color: var(--text-secondary);">(last update: <span
-                        id="last-updated-text">...</span>)</span></h2>
+            <h2 class="section-title"><span id="selected-date-label">Today</span></h2>
+            <p style="text-align: center; font-size: 0.9rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 0.8rem;">last update: <span id="last-updated-text">...</span></p>
             <div id="table-container" style="overflow-x: auto; max-height: 60vh; flex-grow: 1; position: relative;">
                 <p id="loading-text" style="text-align: center; margin-top: 2rem;">Loading live data...</p>
                 <table id="data-table"
