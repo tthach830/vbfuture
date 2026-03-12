@@ -8,6 +8,7 @@ import os
 import re
 
 DB_PATH = 'volleyball.db'
+JSON_DIR = 'json'
 REAL_COURT_PREFIX = 'Main Beach Volleyball Court '
 LEGACY_COURTS = (
     'Dream 1',
@@ -114,14 +115,24 @@ def remove_legacy_courts(conn):
     c.execute(f'DELETE FROM courts WHERE name IN ({placeholders})', LEGACY_COURTS)
 
 
+def ensure_json_directory():
+    os.makedirs(JSON_DIR, exist_ok=True)
+
+
+def get_json_filepath(target_date):
+    return os.path.join(JSON_DIR, target_date.strftime("%m%d%Y") + ".json")
+
+
 def cleanup_old_json_files(today_date=None):
     if today_date is None:
         today_date = datetime.date.today()
 
+    ensure_json_directory()
+
     removed_files = []
     json_pattern = re.compile(r'^(\d{8})\.json$')
 
-    for filename in os.listdir('.'):
+    for filename in os.listdir(JSON_DIR):
         match = json_pattern.match(filename)
         if not match:
             continue
@@ -133,8 +144,9 @@ def cleanup_old_json_files(today_date=None):
 
         if file_date < today_date:
             try:
-                os.remove(filename)
-                removed_files.append(filename)
+                file_path = os.path.join(JSON_DIR, filename)
+                os.remove(file_path)
+                removed_files.append(file_path)
             except OSError as exc:
                 print(f"Warning: Could not delete {filename}: {exc}")
 
@@ -364,7 +376,8 @@ def export_to_json(target_date):
     """Export court availability data to JSON file for the given date"""
     try:
         target_date_str = target_date.strftime("%Y-%m-%d")
-        json_filename = target_date.strftime("%m%d%Y") + ".json"
+        ensure_json_directory()
+        json_filename = get_json_filepath(target_date)
         
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()

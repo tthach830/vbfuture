@@ -694,7 +694,7 @@
                 clearDisplayedData(`Loading data for ${formatDateForDisplay(resolvedDate)}...`);
 
                 try {
-                    const jsonFile = `${formatDateForFile(resolvedDate)}.json`;
+                    const jsonFile = `json/${formatDateForFile(resolvedDate)}.json`;
                     
                     const response = await fetch(jsonFile);
                     
