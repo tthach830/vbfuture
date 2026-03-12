@@ -158,6 +158,10 @@
                 font-size: 1.5rem;
             }
 
+            p.subtitle {
+                font-size: 0.95rem;
+            }
+
             .container {
                 gap: 1rem;
             }
@@ -666,6 +670,14 @@
                 return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
             }
 
+            function formatCourtNameForDisplay(courtName) {
+                const normalized = String(courtName || '').trim().toLowerCase();
+                if (normalized === 'main 01' || normalized === 'main beach volleyball court 01') {
+                    return 'Main Ct';
+                }
+                return courtName;
+            }
+
             function shiftDate(dayDelta) {
                 const baseDateValue = selectedDateValue || getTodayDateValue();
                 const [year, month, day] = baseDateValue.split('-').map(Number);
@@ -813,7 +825,7 @@
                     // 1. First column: Court Name
                     const tdName = document.createElement('td');
                     tdName.className = 'court-name';
-                    tdName.innerText = courtName;
+                    tdName.innerText = formatCourtNameForDisplay(courtName);
                     tdName.title = `Toggle ${courtName} availability for current hour`;
                     tr.appendChild(tdName);
 
