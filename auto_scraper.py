@@ -74,6 +74,33 @@ def format_hour_label(dt):
     return f"{hour}{suffix}"
 
 
+def parse_hour_token(hour_token, meridiem_token):
+    hour = int(hour_token)
+    meridiem = meridiem_token.lower()
+    if hour == 12:
+        hour = 0
+    if meridiem == 'pm':
+        hour += 12
+    return hour
+
+
+def normalize_time_slot(time_slot):
+    slot = str(time_slot).strip().lower()
+    match = re.match(
+        r'^0?(\d{1,2})(?::\d{2})?\s*(am|pm)\s*-\s*0?(\d{1,2})(?::\d{2})?\s*(am|pm)$',
+        slot,
+    )
+    if not match:
+        return None, None
+
+    start_hour_24 = parse_hour_token(match.group(1), match.group(2))
+    end_hour_24 = parse_hour_token(match.group(3), match.group(4))
+
+    start_label = format_hour_label(datetime.datetime(2000, 1, 1, start_hour_24, 0))
+    end_label = format_hour_label(datetime.datetime(2000, 1, 1, end_hour_24, 0))
+    return f"{start_label}-{end_label}", start_hour_24
+
+
 def remove_legacy_courts(conn):
     c = conn.cursor()
     placeholders = ', '.join('?' for _ in LEGACY_COURTS)
@@ -360,11 +387,21 @@ def export_to_json(target_date):
         c.execute('''
             SELECT DISTINCT time_slot FROM slots 
             WHERE date = ?
-            ORDER BY 
-                CAST(SUBSTR(time_slot, 1, INSTR(time_slot, ':') - 1) AS INTEGER),
-                CASE WHEN time_slot LIKE '%pm%' THEN 1 ELSE 0 END
         ''', (target_date_str,))
-        time_slots = [row[0] for row in c.fetchall()]
+
+        normalized_slots = {}
+        for row in c.fetchall():
+            normalized_slot, start_hour_24 = normalize_time_slot(row[0])
+            if normalized_slot is None:
+                continue
+            if start_hour_24 < 8 or start_hour_24 > 21:
+                continue
+            normalized_slots[normalized_slot] = start_hour_24
+
+        time_slots = [
+            slot_name
+            for slot_name, _ in sorted(normalized_slots.items(), key=lambda item: item[1])
+        ]
         
         # Build the data table
         data = []
@@ -388,16 +425,28 @@ def export_to_json(target_date):
             
             court_id = court_result[0]
             
-            # Get status for each time slot
+            c.execute('''
+                SELECT time_slot, status FROM slots
+                WHERE court_id = ? AND date = ?
+            ''', (court_id, target_date_str))
+
+            status_by_slot = {}
+            for raw_slot, raw_status in c.fetchall():
+                normalized_slot, start_hour_24 = normalize_time_slot(raw_slot)
+                if normalized_slot is None:
+                    continue
+                if start_hour_24 < 8 or start_hour_24 > 21:
+                    continue
+
+                existing_status = status_by_slot.get(normalized_slot)
+                new_status = (raw_status or 'unknown').lower()
+                if existing_status is None:
+                    status_by_slot[normalized_slot] = new_status
+                elif existing_status == 'available' and new_status != 'available':
+                    status_by_slot[normalized_slot] = new_status
+
             for time_slot in time_slots:
-                c.execute('''
-                    SELECT status FROM slots 
-                    WHERE court_id = ? AND time_slot = ? AND date = ?
-                    LIMIT 1
-                ''', (court_id, time_slot, target_date_str))
-                result = c.fetchone()
-                status = result[0] if result else 'unknown'
-                row.append(status)
+                row.append(status_by_slot.get(time_slot, 'unknown'))
             
             data.append(row)
         
