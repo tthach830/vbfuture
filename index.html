@@ -671,11 +671,17 @@
             }
 
             function formatCourtNameForDisplay(courtName) {
-                const normalized = String(courtName || '').trim().toLowerCase();
-                if (normalized === 'main 01' || normalized === 'main beach volleyball court 01') {
+                const original = String(courtName || '').trim();
+                const numberedMatch = original.match(/^(?:Main Beach Volleyball Court|Main)\s+(\d{1,2})$/i);
+                if (numberedMatch) {
+                    return `Main Ct ${numberedMatch[1]}`;
+                }
+
+                if (/^Main Beach Volleyball Court$/i.test(original)) {
                     return 'Main Ct';
                 }
-                return courtName;
+
+                return original;
             }
 
             function shiftDate(dayDelta) {
