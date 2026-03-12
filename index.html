@@ -684,6 +684,15 @@
                 return original;
             }
 
+            function formatCourtNameForMap(courtName) {
+                const original = String(courtName || '').trim();
+                const numberedMatch = original.match(/^(?:Main Beach Volleyball Court|Main|Main Ct)\s+(\d{1,2})$/i);
+                if (numberedMatch) {
+                    return `Main ${numberedMatch[1].padStart(2, '0')}`;
+                }
+                return original;
+            }
+
             function shiftDate(dayDelta) {
                 const baseDateValue = selectedDateValue || getTodayDateValue();
                 const [year, month, day] = baseDateValue.split('-').map(Number);
@@ -936,6 +945,7 @@
                     for (let i = 1; i < currentTableData.length; i++) {
                         if (currentTableData[i].length < 2 || !currentTableData[i][0]) continue;
                         const courtName = String(currentTableData[i][0]).trim();
+                        const mapCourtName = formatCourtNameForMap(courtName);
                         let isAvailable = true;
 
                         for (let slotData of dataOffsets) {
@@ -951,7 +961,7 @@
                                 break;
                             }
                         }
-                        availabilityMap[courtName] = isAvailable;
+                        availabilityMap[mapCourtName] = isAvailable;
                     }
                 }
 
