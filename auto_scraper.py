@@ -5,8 +5,18 @@ import sqlite3
 import sys
 import json
 import os
+import re
 
 DB_PATH = 'volleyball.db'
+REAL_COURT_PREFIX = 'Main Beach Volleyball Court '
+LEGACY_COURTS = (
+    'Dream 1',
+    'Dream 2',
+    'Harbor 1',
+    'Harbor 2',
+    'Harbor 3',
+    'Harbor 4',
+)
 
 
 def parse_target_date(specific_date=None):
@@ -62,6 +72,53 @@ def format_hour_label(dt):
         hour = 12
     suffix = 'am' if dt.hour < 12 else 'pm'
     return f"{hour}{suffix}"
+
+
+def remove_legacy_courts(conn):
+    c = conn.cursor()
+    placeholders = ', '.join('?' for _ in LEGACY_COURTS)
+    c.execute(
+        f'''DELETE FROM slots
+            WHERE court_id IN (
+                SELECT id FROM courts WHERE name IN ({placeholders})
+            )''',
+        LEGACY_COURTS,
+    )
+    c.execute(f'DELETE FROM courts WHERE name IN ({placeholders})', LEGACY_COURTS)
+
+
+def cleanup_old_json_files(today_date=None):
+    if today_date is None:
+        today_date = datetime.date.today()
+
+    removed_files = []
+    json_pattern = re.compile(r'^(\d{8})\.json$')
+
+    for filename in os.listdir('.'):
+        match = json_pattern.match(filename)
+        if not match:
+            continue
+
+        try:
+            file_date = datetime.datetime.strptime(match.group(1), "%m%d%Y").date()
+        except ValueError:
+            continue
+
+        if file_date < today_date:
+            try:
+                os.remove(filename)
+                removed_files.append(filename)
+            except OSError as exc:
+                print(f"Warning: Could not delete {filename}: {exc}")
+
+    if removed_files:
+        print(f"Deleted {len(removed_files)} old JSON file(s):")
+        for removed in sorted(removed_files):
+            print(f" - {removed}")
+    else:
+        print("No old JSON files found to delete.")
+
+    return removed_files
 
 def run_scraper(specific_date=None, export_json=True):
     # 1. Determine target date
@@ -212,6 +269,7 @@ def run_scraper(specific_date=None, export_json=True):
     # 4. Update Database
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    remove_legacy_courts(conn)
     
     # Clear old slots for this specific date only (so we can re-run same day safely)
     target_date_str = target_date.strftime("%Y-%m-%d")
@@ -227,18 +285,6 @@ def run_scraper(specific_date=None, export_json=True):
             
         for slot in court['booked_slots']:
             c.execute("INSERT INTO slots (court_id, time_slot, status, date) VALUES (?, ?, ?, ?)", (court_id, slot, 'reserved', target_date_str))
-            
-    # Inject Dream and Harbor courts as fully available for all generated timeslots
-    c.execute("SELECT DISTINCT time_slot FROM slots WHERE date = ?", (target_date_str,))
-    all_time_slots = [row[0] for row in c.fetchall()]
-    
-    extra_courts = ["Dream 1", "Dream 2", "Harbor 1", "Harbor 2", "Harbor 3", "Harbor 4"]
-    for extra_court in extra_courts:
-        c.execute("INSERT OR IGNORE INTO courts (name) VALUES (?)", (extra_court,))
-        c.execute("SELECT id FROM courts WHERE name = ?", (extra_court,))
-        court_id = c.fetchone()[0]
-        for slot in all_time_slots:
-            c.execute("INSERT INTO slots (court_id, time_slot, status, date) VALUES (?, ?, ?, ?)", (court_id, slot, 'available', target_date_str))
             
     conn.commit()
     conn.close()
@@ -281,6 +327,9 @@ def run_scraper_range(start_date=None, days=1, export_json=True):
             print(f" - {failed_date}")
         return False
 
+    if export_json:
+        cleanup_old_json_files()
+
     print(f"\nSuccessfully scraped {days} day(s) starting from {first_date.strftime('%Y-%m-%d')}.")
     return True
 
@@ -292,9 +341,14 @@ def export_to_json(target_date):
         
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+        remove_legacy_courts(conn)
+        conn.commit()
         
         # Get all courts
-        c.execute('SELECT DISTINCT name FROM courts ORDER BY name')
+        c.execute(
+            'SELECT DISTINCT name FROM courts WHERE name LIKE ? ORDER BY name',
+            (f'{REAL_COURT_PREFIX}%',),
+        )
         courts = [row[0] for row in c.fetchall()]
         
         if not courts:
@@ -375,7 +429,11 @@ if __name__ == '__main__':
     parser.add_argument("--date", help="The target date to scrape (MMDDYYYY or YYYY-MM-DD format).")
     parser.add_argument("--days", type=int, default=1, help="Number of consecutive days to scrape starting from --date or today.")
     parser.add_argument("--skip-json", action="store_true", help="Store results in SQLite only and skip JSON export.")
+    parser.add_argument("--cleanup-old-json", action="store_true", help="Delete MMDDYYYY.json files older than today.")
     args = parser.parse_args()
+
+    if args.cleanup_old_json:
+        cleanup_old_json_files()
     
     date_arg = args.date if args.date else args.positional_date
     success = run_scraper_range(start_date=date_arg, days=args.days, export_json=not args.skip_json)
