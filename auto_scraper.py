@@ -407,15 +407,15 @@ def export_to_json(target_date):
         data = []
         
         # Header row
-        header = ['Court', 'LastUpdated'] + time_slots
+        header = ['Court'] + time_slots
         data.append(header)
         
         # Data rows
         now = datetime.datetime.now()
-        timestamp = now.strftime('%H:%M:%S')
+        timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
         
         for court_name in courts:
-            row = [court_name, timestamp]
+            row = [court_name]
             
             # Get court ID
             c.execute('SELECT id FROM courts WHERE name = ?', (court_name,))

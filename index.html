@@ -530,29 +530,12 @@
                 background-color: rgba(255, 255, 255, 0.1);
             }
 
-            /* Second sticky column for LastUpdated */
-            .last-updated-col {
-                position: sticky;
-                /* left offset will be dynamically calculated in JS */
-                background-color: #1e293b;
-                z-index: 5;
-                font-size: 8px;
-                color: var(--text-secondary);
-            }
-
             /* The top-left corner cell needs the highest z-index to stay above both row and col scrolls */
             #data-table th.court-name-head {
                 z-index: 15;
                 left: 0;
                 position: sticky;
                 white-space: nowrap;
-            }
-
-            #data-table th.last-updated-head {
-                z-index: 15;
-                /* left offset dynamically calculated */
-                position: sticky;
-                font-size: 8px;
             }
 
             .status-cell {
@@ -585,7 +568,6 @@
         <script>
             let currentTableData = [];
             let timeSlots = [];
-            let timestampColIndex = -1;
             let selectedDateValue = '';
 
             const courtCoords = [
@@ -652,7 +634,6 @@
             function clearDisplayedData(message) {
                 currentTableData = [];
                 timeSlots = [];
-                timestampColIndex = -1;
 
                 document.getElementById('table-head').innerHTML = '';
                 document.getElementById('table-body').innerHTML = '';
@@ -725,22 +706,10 @@
 
                 let allHeaders = rows[0].map(c => String(c).trim());
 
-                // Look for "LastUpdated" or "Timestamp" column
-                timestampColIndex = -1;
-                for (let i = 1; i < allHeaders.length; i++) {
-                    let hLower = allHeaders[i].toLowerCase();
-                    if (hLower === "lastupdated" || hLower === "timestamp") {
-                        timestampColIndex = i;
-                        break;
-                    }
-                }
-
-                // Extract timeslots (exclude court name and timestamp column)
+                // Extract timeslots (exclude court name)
                 timeSlots = [];
                 for (let i = 1; i < allHeaders.length; i++) {
-                    if (i !== timestampColIndex) {
-                        timeSlots.push(allHeaders[i]);
-                    }
+                    timeSlots.push(allHeaders[i]);
                 }
 
                 // Helper to get current hour string (e.g. "5:00 pm - 6:00 pm")
@@ -772,13 +741,7 @@
                 thCourt.className = 'court-name-head';
                 headerRow.appendChild(thCourt);
 
-                // 2. Add LastUpdated Column Header
-                const thTimestamp = document.createElement('th');
-                thTimestamp.innerText = "LastUpdated";
-                thTimestamp.className = 'last-updated-head';
-                headerRow.appendChild(thTimestamp);
-
-                // 3. Add Shifted Time Slot Headers
+                // 2. Add Shifted Time Slot Headers
                 shiftedTimeSlots.forEach(slot => {
                     const th = document.createElement('th');
                     th.innerText = slot;
@@ -803,22 +766,10 @@
                     tdName.title = `Toggle ${courtName} availability for current hour`;
                     tr.appendChild(tdName);
 
-                    // 2. Second column: LastUpdated
-                    const tdTimestamp = document.createElement('td');
-                    tdTimestamp.className = 'last-updated-col';
-                    if (timestampColIndex !== -1 && rows[i][timestampColIndex]) {
-                        tdTimestamp.innerText = String(rows[i][timestampColIndex]).trim();
-                    } else {
-                        tdTimestamp.innerText = globalLastUpdated || "-";
-                    }
-                    tr.appendChild(tdTimestamp);
-
-                    // Extract all data columns for this row (excluding Court Name and Timestamp)
+                    // Extract all data columns for this row (excluding Court Name)
                     const rowData = [];
                     for (let k = 1; k < rows[i].length; k++) {
-                        if (k !== timestampColIndex) {
-                            rowData.push(rows[i][k]);
-                        }
+                        rowData.push(rows[i][k]);
                     }
 
                     // Pad with empty if needed
@@ -868,18 +819,6 @@
                     tbody.appendChild(tr);
                 }
 
-                // Sync the sticky offset for the 2nd column based on the auto-width 1st column
-                // Need a small timeout to let the browser compute the width
-                setTimeout(() => {
-                    const firstColHeader = document.querySelector('#data-table th.court-name-head');
-                    if (firstColHeader) {
-                        const offsetWidth = firstColHeader.offsetWidth;
-                        document.querySelectorAll('.last-updated-head, .last-updated-col').forEach(el => {
-                            el.style.left = offsetWidth + 'px';
-                        });
-                    }
-                }, 10);
-
                 document.getElementById('loading-text').style.display = 'none';
                 document.getElementById('data-table').style.display = 'table';
 
@@ -911,10 +850,9 @@
                 const availabilityMap = {};
                 if (currentTableData && currentTableData.length > 0) {
                     // Find all active header index offsets for timeSlots.
-                    // headers are Court [0], LastUpdated (optional), Timeslots...
+                    // headers are Court [0], Timeslots...
                     let dataOffsets = [];
                     for (let j = 1; j < currentTableData[0].length; j++) {
-                        if (j === timestampColIndex) continue;
                         dataOffsets.push({ dataIndex: j, slotName: String(currentTableData[0][j]).trim().toLowerCase() });
                     }
 
