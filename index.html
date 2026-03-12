@@ -295,6 +295,22 @@
             cursor: pointer;
         }
 
+        .date-nav-btn {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .date-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
         /* Future Data Popup Modal */
         #future-modal {
             display: none;
@@ -410,7 +426,9 @@
             </p>
             <div class="date-picker-container" style="margin-top: 1.5rem;">
                 <label for="future-date">Choose Date:</label>
+                <button type="button" class="date-nav-btn" aria-label="Previous day" onclick="shiftDate(-1)">←</button>
                 <input type="date" id="future-date" onchange="handleFutureDateSelect(this.value)">
+                <button type="button" class="date-nav-btn" aria-label="Next day" onclick="shiftDate(1)">→</button>
             </div>
         </header>
 
@@ -622,6 +640,19 @@
                     day: 'numeric',
                     year: 'numeric'
                 });
+            }
+
+            function formatDateForInput(dateObj) {
+                return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            }
+
+            function shiftDate(dayDelta) {
+                const baseDateValue = selectedDateValue || getTodayDateValue();
+                const [year, month, day] = baseDateValue.split('-').map(Number);
+                const dateObj = new Date(year, month - 1, day);
+                dateObj.setDate(dateObj.getDate() + dayDelta);
+                const shiftedDateValue = formatDateForInput(dateObj);
+                loadTableData(shiftedDateValue);
             }
 
             function updateSelectedDateLabel(dateValue) {
