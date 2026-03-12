@@ -6,33 +6,26 @@ import sys
 import json
 import os
 
-def run_scraper(specific_date=None):
-    # 1. Determine target date
-    if specific_date:
-        try:
-            target_date = datetime.datetime.strptime(specific_date, "%m%d%Y")
-        except ValueError:
-            try:
-                # Fallback to YYYY-MM-DD
-                target_date = datetime.datetime.strptime(specific_date, "%Y-%m-%d")
-            except ValueError:
-                print(f"Error: Invalid date format '{specific_date}'. Please use MMDDYYYY or YYYY-MM-DD.")
-                return
-    else:
-        target_date = datetime.datetime.now()
+DB_PATH = 'volleyball.db'
 
-    url_date = target_date.strftime("%m%%2F%d%%2F%Y")
-    display_date = target_date.strftime("%B %d, %Y")
-    header_date = target_date.strftime("%B %d")
-    
-    base_url = "https://casantacruzweb.myvscloud.com/webtrac/web/search.html?Action=Start&SubAction=&_csrf_token=xk0W0R6N0C712M2S3A2O2E4A4P4H6O6A055Q5H505203035W595T1B6W3Q6I581C5I4P4O6A1H5I4V57536M6S4J5K69016W5W6M5V17704M5D68076D4E6G471C5V4J6J&date="
-    end_url = "&keyword=&primarycode=&frheadcount=0&type=Beach+Volleyball+Court&frclass=&keywordoption=Match+One&blockstodisplay=15&features1=&features2=&features3=&features4=&features5=&features6=&features7=&features8=&begintime=12%3A00+am&subtype=&category=&features=&display=Detail&module=FR&multiselectlist_value=&frwebsearch_buttonsearch=yes"
-    
-    target_url = base_url + url_date + end_url
-    print(f"Scraping availability for today: {display_date}")
-    
-    # 2. Ensure Database structure exists early
-    conn = sqlite3.connect('volleyball.db')
+
+def parse_target_date(specific_date=None):
+    if not specific_date:
+        return datetime.datetime.now()
+
+    for date_format in ("%m%d%Y", "%Y-%m-%d"):
+        try:
+            return datetime.datetime.strptime(specific_date, date_format)
+        except ValueError:
+            continue
+
+    raise ValueError(
+        f"Invalid date format '{specific_date}'. Please use MMDDYYYY or YYYY-MM-DD."
+    )
+
+
+def ensure_database():
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS courts (
@@ -50,15 +43,46 @@ def run_scraper(specific_date=None):
             FOREIGN KEY(court_id) REFERENCES courts(id)
         )
     ''')
-    
-    # Safely migrate existing databases
+
     try:
         c.execute('ALTER TABLE slots ADD COLUMN date TEXT')
     except sqlite3.OperationalError:
-        pass # Column already exists
-    
+        pass
+
+    c.execute('CREATE INDEX IF NOT EXISTS idx_slots_date ON slots(date)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_slots_court_time_date ON slots(court_id, time_slot, date)')
+
     conn.commit()
     conn.close()
+
+
+def format_hour_label(dt):
+    hour = dt.hour % 12
+    if hour == 0:
+        hour = 12
+    suffix = 'am' if dt.hour < 12 else 'pm'
+    return f"{hour}{suffix}"
+
+def run_scraper(specific_date=None, export_json=True):
+    # 1. Determine target date
+    try:
+        target_date = parse_target_date(specific_date)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return False
+
+    url_date = target_date.strftime("%m%%2F%d%%2F%Y")
+    display_date = target_date.strftime("%B %d, %Y")
+    header_date = target_date.strftime("%B %d")
+    
+    base_url = "https://casantacruzweb.myvscloud.com/webtrac/web/search.html?Action=Start&SubAction=&_csrf_token=xk0W0R6N0C712M2S3A2O2E4A4P4H6O6A055Q5H505203035W595T1B6W3Q6I581C5I4P4O6A1H5I4V57536M6S4J5K69016W5W6M5V17704M5D68076D4E6G471C5V4J6J&date="
+    end_url = "&keyword=&primarycode=&frheadcount=0&type=Beach+Volleyball+Court&frclass=&keywordoption=Match+One&blockstodisplay=15&features1=&features2=&features3=&features4=&features5=&features6=&features7=&features8=&begintime=12%3A00+am&subtype=&category=&features=&display=Detail&module=FR&multiselectlist_value=&frwebsearch_buttonsearch=yes"
+    
+    target_url = base_url + url_date + end_url
+    print(f"Scraping availability for today: {display_date}")
+
+    # 2. Ensure Database structure exists early
+    ensure_database()
 
     # 3. Use Playwright to load the page and extract HTML
     print("Launching headless browser...")
@@ -122,8 +146,8 @@ def run_scraper(specific_date=None):
             while current < end_dt:
                 next_hour = current + datetime.timedelta(hours=1)
                 # Formats like '7am-8am' or '12pm-1pm'
-                current_str = current.strftime('%#I%p').lower()
-                next_str = next_hour.strftime('%#I%p').lower()
+                current_str = format_hour_label(current)
+                next_str = format_hour_label(next_hour)
                 hours.append(f"{current_str}-{next_str}")
                 current = next_hour
             return hours
@@ -186,12 +210,12 @@ def run_scraper(specific_date=None):
     print("Data extracted successfully. Updating database...")
     
     # 4. Update Database
-    conn = sqlite3.connect('volleyball.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Clear old slots for this specific date only (so we can re-run same day safely)
     target_date_str = target_date.strftime("%Y-%m-%d")
-    c.execute('DELETE FROM slots WHERE date = ? OR date IS NULL', (target_date_str,))
+    c.execute('DELETE FROM slots WHERE date = ?', (target_date_str,))
     
     for court in court_data:
         c.execute("INSERT OR IGNORE INTO courts (name) VALUES (?)", (court['facility'],))
@@ -205,7 +229,7 @@ def run_scraper(specific_date=None):
             c.execute("INSERT INTO slots (court_id, time_slot, status, date) VALUES (?, ?, ?, ?)", (court_id, slot, 'reserved', target_date_str))
             
     # Inject Dream and Harbor courts as fully available for all generated timeslots
-    c.execute("SELECT DISTINCT time_slot FROM slots")
+    c.execute("SELECT DISTINCT time_slot FROM slots WHERE date = ?", (target_date_str,))
     all_time_slots = [row[0] for row in c.fetchall()]
     
     extra_courts = ["Dream 1", "Dream 2", "Harbor 1", "Harbor 2", "Harbor 3", "Harbor 4"]
@@ -220,9 +244,45 @@ def run_scraper(specific_date=None):
     conn.close()
     
     # 5. Export data to JSON file
-    export_to_json(target_date)
+    if export_json:
+        export_to_json(target_date)
     
     print("Database updated successfully!")
+    return True
+
+
+def run_scraper_range(start_date=None, days=1, export_json=True):
+    try:
+        first_date = parse_target_date(start_date)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return False
+
+    if days < 1:
+        print("Error: --days must be at least 1.")
+        return False
+
+    ensure_database()
+
+    failures = []
+    for offset in range(days):
+        current_date = first_date + datetime.timedelta(days=offset)
+        current_date_str = current_date.strftime("%Y-%m-%d")
+        print(f"\n{'=' * 60}")
+        print(f"Scraping day {offset + 1} of {days}: {current_date_str}")
+        print(f"{'=' * 60}")
+
+        if not run_scraper(specific_date=current_date_str, export_json=export_json):
+            failures.append(current_date_str)
+
+    if failures:
+        print("\nScrape completed with failures for:")
+        for failed_date in failures:
+            print(f" - {failed_date}")
+        return False
+
+    print(f"\nSuccessfully scraped {days} day(s) starting from {first_date.strftime('%Y-%m-%d')}.")
+    return True
 
 def export_to_json(target_date):
     """Export court availability data to JSON file for the given date"""
@@ -230,7 +290,7 @@ def export_to_json(target_date):
         target_date_str = target_date.strftime("%Y-%m-%d")
         json_filename = target_date.strftime("%m%d%Y") + ".json"
         
-        conn = sqlite3.connect('volleyball.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
         # Get all courts
@@ -245,7 +305,7 @@ def export_to_json(target_date):
         # Get all time slots for this date
         c.execute('''
             SELECT DISTINCT time_slot FROM slots 
-            WHERE date = ? OR date IS NULL
+            WHERE date = ?
             ORDER BY 
                 CAST(SUBSTR(time_slot, 1, INSTR(time_slot, ':') - 1) AS INTEGER),
                 CASE WHEN time_slot LIKE '%pm%' THEN 1 ELSE 0 END
@@ -278,7 +338,7 @@ def export_to_json(target_date):
             for time_slot in time_slots:
                 c.execute('''
                     SELECT status FROM slots 
-                    WHERE court_id = ? AND time_slot = ? AND (date = ? OR date IS NULL)
+                    WHERE court_id = ? AND time_slot = ? AND date = ?
                     LIMIT 1
                 ''', (court_id, time_slot, target_date_str))
                 result = c.fetchone()
@@ -313,7 +373,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="WebTrac Court Availability Scraper")
     parser.add_argument("positional_date", nargs="?", help="Optional Target date in MMDDYYYY format for backward compatibility")
     parser.add_argument("--date", help="The target date to scrape (MMDDYYYY or YYYY-MM-DD format).")
+    parser.add_argument("--days", type=int, default=1, help="Number of consecutive days to scrape starting from --date or today.")
+    parser.add_argument("--skip-json", action="store_true", help="Store results in SQLite only and skip JSON export.")
     args = parser.parse_args()
     
     date_arg = args.date if args.date else args.positional_date
-    run_scraper(specific_date=date_arg)
+    success = run_scraper_range(start_date=date_arg, days=args.days, export_json=not args.skip_json)
+    if not success:
+        sys.exit(1)

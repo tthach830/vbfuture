@@ -408,39 +408,16 @@
             <p style="margin-top: 1rem;">
                 <a href="https://runwildlovestronglivefree.org/vbfuture" style="color: var(--accent-color); text-decoration: none; font-weight: 600; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-hover)'" onmouseout="this.style.color='var(--accent-color)'">Click here for other dates</a>
             </p>
-            <!-- FUTURE DATE FEATURE TEMPORARILY DISABLED -->
-            <!--
             <div class="date-picker-container" style="margin-top: 1.5rem;">
-                <label for="future-date">Check Future Date:</label>
+                <label for="future-date">Choose Date:</label>
                 <input type="date" id="future-date" onchange="handleFutureDateSelect(this.value)">
             </div>
-            -->
         </header>
 
-        <main class="glass-panel" style="height: auto; min-height: 0;">
-            <h2 class="section-title">Court Status <span
+        <main class="glass-panel">
+            <h2 class="section-title">Court Availability for <span id="selected-date-label">Today</span> <span
                     style="font-size: 0.9rem; font-weight: 400; color: var(--text-secondary);">(last update: <span
                         id="last-updated-text">...</span>)</span></h2>
-            <p style="text-align: center; color: #fca5a5; font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1rem;">
-                <span
-                    style="display: inline-block; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>
-                Red = Unavailable for the Current Hour (<span id="current-hour-text"></span>)
-            </p>
-            <div class="iframe-wrapper" id="map-wrapper"
-                style="position: relative; overflow: hidden; background: #fff; border-radius: 8px; width: 100%; aspect-ratio: 1200 / 800;">
-                <!-- The map has a native resolution of 1200x800 -->
-                <div id="map-scale-container"
-                    style="position: absolute; top: 0; left: 0; transform-origin: top left; width: 1200px; height: 800px; z-index: 1;">
-                    <img src="./map.png" alt="Court Map"
-                        style="position: absolute; top: 0; left: 0; width: 1200px; height: 800px; object-fit: cover; z-index: 2;">
-                    <div id="map-dots-container"
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 3;"></div>
-                </div>
-            </div>
-        </main>
-
-        <main class="glass-panel">
-            <h2 class="section-title">Court Availability</h2>
             <div id="table-container" style="overflow-x: auto; max-height: 60vh; flex-grow: 1; position: relative;">
                 <p id="loading-text" style="text-align: center; margin-top: 2rem;">Loading live data...</p>
                 <table id="data-table"
@@ -609,6 +586,7 @@
             let currentTableData = [];
             let timeSlots = [];
             let timestampColIndex = -1;
+            let selectedDateValue = '';
 
             const courtCoords = [
                 { "court": "Main 01", "x": 124, "y": 538 },
@@ -643,16 +621,69 @@
             }
             window.addEventListener('resize', resizeMap);
 
-            async function loadTableData() {
+            function getTodayDateValue() {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            }
+
+            function formatDateForFile(dateValue) {
+                const [year, month, day] = dateValue.split('-');
+                return `${month}${day}${year}`;
+            }
+
+            function formatDateForDisplay(dateValue) {
+                const [year, month, day] = dateValue.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                return date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+
+            function updateSelectedDateLabel(dateValue) {
+                const label = document.getElementById('selected-date-label');
+                if (label) {
+                    label.innerText = formatDateForDisplay(dateValue);
+                }
+            }
+
+            function clearDisplayedData(message) {
+                currentTableData = [];
+                timeSlots = [];
+                timestampColIndex = -1;
+
+                document.getElementById('table-head').innerHTML = '';
+                document.getElementById('table-body').innerHTML = '';
+                document.getElementById('data-table').style.display = 'none';
+
+                const loadingText = document.getElementById('loading-text');
+                loadingText.style.display = 'block';
+                loadingText.innerText = message;
+
+                const updateText = document.getElementById('last-updated-text');
+                if (updateText) updateText.innerText = '...';
+
+                const dotsContainer = document.getElementById('map-dots-container');
+                if (dotsContainer) dotsContainer.innerHTML = '';
+            }
+
+            async function loadTableData(dateValue = null) {
+                const resolvedDate = dateValue || selectedDateValue || getTodayDateValue();
+                selectedDateValue = resolvedDate;
+
+                const dateInput = document.getElementById('future-date');
+                if (dateInput && dateInput.value !== resolvedDate) {
+                    dateInput.value = resolvedDate;
+                }
+
+                updateSelectedDateLabel(resolvedDate);
+                clearDisplayedData(`Loading data for ${formatDateForDisplay(resolvedDate)}...`);
+
                 try {
-                    // Get today's date in MMDDYYYY format
-                    const now = new Date();
-                    const today = String(now.getMonth() + 1).padStart(2, '0') + 
-                                  String(now.getDate()).padStart(2, '0') + 
-                                  now.getFullYear();
-                    const jsonFile = `${today}.json`;
+                    const jsonFile = `${formatDateForFile(resolvedDate)}.json`;
                     
-                    // Try to fetch the JSON file for today
                     const response = await fetch(jsonFile);
                     
                     if (response.ok) {
@@ -666,15 +697,22 @@
                                 if (updateText) updateText.innerText = result.lastUpdated;
                             }
                         } else {
-                            document.getElementById('loading-text').innerText = "Error: " + result.message;
+                            clearDisplayedData("Error: " + result.message);
                         }
                     } else {
-                        document.getElementById('loading-text').innerText = "No data available for today. Run the scraper first.";
+                        clearDisplayedData(`No data available for ${formatDateForDisplay(resolvedDate)}.`);
                     }
                 } catch (error) {
-                    document.getElementById('loading-text').innerText = "Error loading data. Make sure you've run the scraper (auto_scraper.py) first.";
+                    clearDisplayedData(`Error loading data for ${formatDateForDisplay(resolvedDate)}. Make sure the export file exists.`);
                     console.error("Error fetching data:", error);
                 }
+            }
+
+            function handleFutureDateSelect(value) {
+                if (!value) {
+                    return;
+                }
+                loadTableData(value);
             }
 
             function renderTableData(rows, globalLastUpdated) {
@@ -974,7 +1012,14 @@
             }
 
             // Load data on page load
-            window.addEventListener('DOMContentLoaded', loadTableData);
+            window.addEventListener('DOMContentLoaded', () => {
+                const today = getTodayDateValue();
+                const dateInput = document.getElementById('future-date');
+                if (dateInput) {
+                    dateInput.value = today;
+                }
+                loadTableData(today);
+            });
         </script>
 
         <!-- Cloudflare Web Analytics -->
