@@ -891,7 +891,10 @@
                 };
 
                 const hourTextEl = document.getElementById('current-hour-text');
-                if (hourTextEl) hourTextEl.innerText = '10AM-5PM';
+                if (hourTextEl) {
+                    const legendDate = selectedDateValue || getTodayDateValue();
+                    hourTextEl.innerText = `${formatDateForDisplay(legendDate)} · 10AM-5PM`;
+                }
 
                 const availabilityMap = {};
                 if (currentTableData && currentTableData.length > 0) {
