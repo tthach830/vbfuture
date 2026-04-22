@@ -184,7 +184,7 @@ def run_scraper(specific_date=None, export_json=True):
     print("Launching headless browser...")
     with sync_playwright() as p:
         # Some WebTrac portals block basic Headless Chrome signatures
-        browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+        browser = p.chromium.launch(headless=False, args=["--disable-blink-features=AutomationControlled"])
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
@@ -350,6 +350,8 @@ def run_scraper_range(start_date=None, days=1, export_json=True):
     ensure_database()
 
     failures = []
+    import time
+    import random
     for offset in range(days):
         current_date = first_date + datetime.timedelta(days=offset)
         current_date_str = current_date.strftime("%Y-%m-%d")
@@ -359,6 +361,12 @@ def run_scraper_range(start_date=None, days=1, export_json=True):
 
         if not run_scraper(specific_date=current_date_str, export_json=export_json):
             failures.append(current_date_str)
+            
+        # Add a random delay between days (but not after the last day) to avoid Cloudflare rate limiting
+        if offset < days - 1:
+            delay = random.uniform(30, 90)
+            print(f"Waiting {delay:.1f} seconds before next scrape to avoid rate limits...")
+            time.sleep(delay)
 
     if failures:
         print("\nScrape completed with failures for:")

@@ -15,23 +15,23 @@ def test_imports():
     
     try:
         import playwright
-        print("✓ playwright installed")
+        print("[OK] playwright installed")
     except ImportError:
-        print("✗ playwright NOT installed")
+        print("[FAIL] playwright NOT installed")
         return False
     
     try:
         import bs4
-        print("✓ beautifulsoup4 installed")
+        print("[OK] beautifulsoup4 installed")
     except ImportError:
-        print("✗ beautifulsoup4 NOT installed")
+        print("[FAIL] beautifulsoup4 NOT installed")
         return False
     
     try:
         import auto_scraper
-        print("✓ auto_scraper.py loads successfully")
+        print("[OK] auto_scraper.py loads successfully")
     except Exception as e:
-        print(f"✗ auto_scraper.py error: {e}")
+        print(f"[FAIL] auto_scraper.py error: {e}")
         return False
     
     return True
@@ -57,11 +57,11 @@ def test_json_structure():
     try:
         json_str = json.dumps(sample_json, indent=2)
         parsed = json.loads(json_str)
-        print("✓ JSON structure is valid")
-        print("✓ Can be serialized and deserialized")
+        print("[OK] JSON structure is valid")
+        print("[OK] Can be serialized and deserialized")
         return True
     except Exception as e:
-        print(f"✗ JSON error: {e}")
+        print(f"[FAIL] JSON error: {e}")
         return False
 
 def test_file_format():
@@ -79,10 +79,10 @@ def test_file_format():
     # Test format
     parts = json_filename.replace(".json", "")
     if len(parts) == 8 and parts.isdigit():
-        print(f"✓ Filename format is correct (MMDDYYYY.json)")
+        print(f"[OK] Filename format is correct (MMDDYYYY.json)")
         return True
     else:
-        print(f"✗ Filename format is incorrect")
+        print(f"[FAIL] Filename format is incorrect")
         return False
 
 def test_html_json_loading():
@@ -92,31 +92,31 @@ def test_html_json_loading():
     print("="*60)
     
     try:
-        with open("index.html", "r") as f:
+        with open("index.html", "r", encoding="utf-8") as f:
             content = f.read()
         
         if ".json" in content:
-            print("✓ index.html references .json files")
+            print("[OK] index.html references .json files")
         else:
-            print("✗ index.html doesn't reference .json files")
+            print("[FAIL] index.html doesn't reference .json files")
             return False
         
         if "fetch(" in content and "json" in content.lower():
-            print("✓ index.html has JSON fetch functionality")
+            print("[OK] index.html has JSON fetch functionality")
         else:
-            print("✗ index.html missing JSON fetch")
+            print("[FAIL] index.html missing JSON fetch")
             return False
         
         if "renderTableData" in content:
-            print("✓ index.html has table rendering code")
+            print("[OK] index.html has table rendering code")
         else:
-            print("✗ index.html missing table rendering")
+            print("[FAIL] index.html missing table rendering")
             return False
         
         return True
         
     except Exception as e:
-        print(f"✗ Error reading HTML: {e}")
+        print(f"[FAIL] Error reading HTML: {e}")
         return False
 
 def test_scraper_json_export():
@@ -126,31 +126,31 @@ def test_scraper_json_export():
     print("="*60)
     
     try:
-        with open("auto_scraper.py", "r") as f:
+        with open("auto_scraper.py", "r", encoding="utf-8") as f:
             content = f.read()
         
         if "export_to_json" in content:
-            print("✓ auto_scraper.py has export_to_json function")
+            print("[OK] auto_scraper.py has export_to_json function")
         else:
-            print("✗ auto_scraper.py missing export_to_json")
+            print("[FAIL] auto_scraper.py missing export_to_json")
             return False
         
         if "json.dump" in content:
-            print("✓ auto_scraper.py exports to JSON")
+            print("[OK] auto_scraper.py exports to JSON")
         else:
-            print("✗ auto_scraper.py doesn't export JSON")
+            print("[FAIL] auto_scraper.py doesn't export JSON")
             return False
         
         if ".json" in content:
-            print("✓ auto_scraper.py creates .json files")
+            print("[OK] auto_scraper.py creates .json files")
         else:
-            print("✗ auto_scraper.py doesn't create .json files")
+            print("[FAIL] auto_scraper.py doesn't create .json files")
             return False
         
         return True
         
     except Exception as e:
-        print(f"✗ Error reading scraper: {e}")
+        print(f"[FAIL] Error reading scraper: {e}")
         return False
 
 def check_flask_removed():
@@ -167,29 +167,29 @@ def check_flask_removed():
     for filename in files_to_check:
         if os.path.exists(filename):
             remaining.append(filename)
-            print(f"✗ {filename} still exists (should be removed)")
+            print(f"[FAIL] {filename} still exists (should be removed)")
         else:
             removed.append(filename)
-            print(f"✓ {filename} removed")
+            print(f"[OK] {filename} removed")
     
     try:
-        with open("requirements.txt", "r") as f:
+        with open("requirements.txt", "r", encoding="utf-8") as f:
             req_content = f.read()
         
         if "Flask" not in req_content:
-            print("✓ Flask removed from requirements.txt")
+            print("[OK] Flask removed from requirements.txt")
         else:
-            print("✗ Flask still in requirements.txt")
+            print("[FAIL] Flask still in requirements.txt")
             return False
         
         if "google" not in req_content.lower():
-            print("✓ Google Sheets packages removed from requirements.txt")
+            print("[OK] Google Sheets packages removed from requirements.txt")
         else:
-            print("✗ Google packages still in requirements.txt")
+            print("[FAIL] Google packages still in requirements.txt")
             return False
         
     except Exception as e:
-        print(f"✗ Error reading requirements.txt: {e}")
+        print(f"[FAIL] Error reading requirements.txt: {e}")
         return False
     
     return len(remaining) == 0
@@ -213,21 +213,21 @@ def main():
     print("="*60)
     
     for test_name, result in results.items():
-        status = "✓ PASS" if result else "✗ FAIL"
+        status = "[OK] PASS" if result else "[FAIL] FAIL"
         print(f"{status}: {test_name}")
     
     all_pass = all(results.values())
     
     print("\n" + "="*60)
     if all_pass:
-        print("✓ All tests passed! System is ready.")
+        print("[OK] All tests passed! System is ready.")
         print("\nQuick start:")
         print("  1. python auto_scraper.py       (scrape data)")
         print("  2. open index.html               (view in browser)")
         print("="*60 + "\n")
         return 0
     else:
-        print("✗ Some tests failed. Check the issues above.")
+        print("[FAIL] Some tests failed. Check the issues above.")
         print("="*60 + "\n")
         return 1
 

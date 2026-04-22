@@ -67,6 +67,7 @@ auto_scraper.py (Scraper)
 | `python auto_scraper.py` | Scrape today's data |
 | `python auto_scraper.py 03152026` | Scrape specific date (MMDDYYYY) |
 | `python auto_scraper.py --date 2026-03-15` | Scrape specific date (YYYY-MM-DD) |
+| `python auto_scraper.py --days 90` | Scrape 90 consecutive days starting from today |
 | `python test_json_system.py` | Verify system setup |
 
 ## 📝 JSON File Format
